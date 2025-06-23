@@ -12,12 +12,21 @@ go run path/of/v5.12/KernelBitcode.go --help
 
 1. Build Kernel with clang
 ```shell
-make LLVM=1 -j16
+make LLVM=<Path_to_llvm> -j16
 ```
+
+> [!NOTE]
+> You can find out your llvm-* or clang in the Path_to_llvm
+
+
 2. Generate script to build kernel into LLVM Bitcode
 ```shell
 go run path/of/v5.12/KernelBitcode.go
 ```
+
+> [!IMPORTANT]
+> If you do not use the llvm installed by the system but compile your own llvm version, you need to modify the specified parameters by viewing the -help parameter
+
 3. Get LLVM Bitcode
 ```shell
 bash build.sh
