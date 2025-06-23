@@ -379,6 +379,19 @@ func build(kernelPath string) (string, string) {
 			if strings.HasSuffix(info.Name(), SuffixCC) && !strings.HasSuffix(info.Name(), SuffixLTO) {
 				//  get cmd from the file
 				cmd := getCmd(path)
+				//  check if empty
+				if cmd == "" {
+					fmt.Println("Empty command in .cmd file:", path)
+					return nil
+				}
+				fields := strings.Fields(cmd)
+				if len(fields) == 0 {
+					fmt.Println("Malformed command in .cmd file:", path)
+					return nil
+				}
+				// get compiler tools for logs print
+				compiler := filepath.Base(strings.Fields(cmd)[0])
+
 				if strings.HasPrefix(cmd, *CC) {
 					cmd := handleCC(cmd)
 					cmdCC += cmd
@@ -395,7 +408,7 @@ func build(kernelPath string) (string, string) {
 					cmd = handleSTRIP(cmd)
 					cmdLDInCC = cmd + cmdLDInCC
 				} else {
-					fmt.Println(*CC + " not found")
+					fmt.Println("Unrecognized compiler:" + compiler)
 					fmt.Println(path)
 					fmt.Println(cmd)
 				}
