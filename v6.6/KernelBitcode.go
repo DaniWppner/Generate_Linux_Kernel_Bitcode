@@ -63,6 +63,9 @@ const (
 
 	// CmdTools skip the cmd with CmdTools
 	CmdTools = "BUILD_STR(s)=$(pound)s"
+
+	// objtools skip compiling objtools again
+	ObjToolsDir = "tools/objtool/"
 )
 
 var bitcodes map[string]bool
@@ -309,9 +312,14 @@ func handleLD(cmd string) string {
 
 	res := ""
 	cmds := strings.Split(cmd, "; ")
-	for _, cmd := range cmds {
-		if i := strings.Index(cmd, " "+*AR+" "); i > -1 {
-			res += replace(cmd)
+	for _, cmd_temp := range cmds {
+		if len(cmd_temp) <= 5 {
+			fmt.Println("Very short command in LD cmd: ")
+			fmt.Println(cmd_temp)
+			fmt.Println(cmd)
+		}
+		if i := strings.Index(cmd_temp, " "+*AR+" "); i > -1 {
+			res += replace(cmd_temp)
 		}
 	}
 	return res
@@ -377,11 +385,18 @@ func build(kernelPath string) (string, string) {
 			//  handle, all *.o.cmd files.
 			//  do not include  *.lto.o.cmd files
 			if strings.HasSuffix(info.Name(), SuffixCC) && !strings.HasSuffix(info.Name(), SuffixLTO) {
+
+				// skip the out-of-kernel cmd in tools/objtools
+				if strings.Contains(path, ObjToolsDir) {
+					fmt.Println("Skipping objtools .cmd file:", path)
+					return nil
+				}
+
 				//  get cmd from the file
 				cmd := getCmd(path)
 				//  check if empty
-				if cmd == "" {
-					fmt.Println("Empty command in .cmd file:", path)
+				if len(cmd) <= 5 {
+					fmt.Println("Very short command in .cmd file:", path)
 					return nil
 				}
 				fields := strings.Fields(cmd)
@@ -396,11 +411,18 @@ func build(kernelPath string) (string, string) {
 					cmd := handleCC(cmd)
 					cmdCC += cmd
 				} else if strings.Index(cmd, *AR) > -1 {
+					fmt.Println("In file", path)
+					fmt.Println("\thandleLD in cmd:", cmd)
 					cmd = handleLD(cmd)
+					fmt.Println("\tresult:", cmd)
 					cmdLDInCC = cmd + cmdLDInCC
+
 				} else if strings.Index(cmd, *LLD) > -1 {
+					fmt.Println("In file", path)
+					fmt.Println("\thandleSuffixCCWithLD in cmd:\n\t", cmd)
 					cmd = handleSuffixCCWithLD(cmd, kernelPath)
 					cmdLDInCC = cmd + cmdLDInCC
+					fmt.Println("\tresult:", cmd)
 				} else if strings.HasPrefix(cmd, *OBJCOPY) {
 					cmd = handleOBJCOPY(cmd)
 					cmdLDInCC = cmd + cmdLDInCC
@@ -493,6 +515,7 @@ func build(kernelPath string) (string, string) {
 
 func generateScript(path string, cmd string) {
 	res := "#!/bin/bash\n"
+	res += "\nset -e\nset -x\n\n"
 	res += cmd
 
 	pathScript := filepath.Join(NameScript)
