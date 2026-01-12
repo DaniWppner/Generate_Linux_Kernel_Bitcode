@@ -1,7 +1,5 @@
-# Use the same base image as KLEE (and SyzSpec since it's based on KLEE)
-FROM ubuntu:jammy-20230126
+FROM debian:bookworm
 
-# Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
 # 1. Install kernel, llvm, golang dependencies
@@ -10,23 +8,22 @@ RUN apt-get update && apt-get install -y \
     make flex bison bc libelf-dev libssl-dev rsync file \ 
     # LLVM 14 toolchain 
     clang-14 llvm-14 lld-14 \
-    # golang (to use with
-    # github.com/ZHYfeng/Generate_Linux_Kernel_Bitcode/tree/master)
+    # golang (to use gllvm)
     golang-go ca-certificates \
-
+    #LLVM pass dependencies
+    build-essential cmake python3 zlib1g wget subversion unzip git \
+    # ninja-build is a faster alternative to make for cmake projects
+    ninja-build \
+    # parallel is useful to speed up clang commands outside of make
+    parallel \
     && rm -rf /var/lib/apt/lists/*
-
+    
 # 2. Install gllvm
 RUN go install github.com/SRI-CSL/gllvm/cmd/...@v1.3.1 
 ENV PATH="$PATH:$HOME/go/bin"
+ENV CMAKE_GENERATOR="Ninja"
 
-RUN apt-get update && apt-get install -y \
-    # These are needed to run clang commands in parallel    
-    parallel \
-
-    && rm -rf /var/lib/apt/lists/*
-
-# 3. Set LLVM 14 as the default version
+# 3. Set LLVM 14 as the default LLVM version
 RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 100 && \
     update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-14 100 && \
     update-alternatives --install /usr/bin/llvm-ar llvm-ar /usr/bin/llvm-ar-14 100 && \

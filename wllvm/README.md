@@ -23,3 +23,17 @@ make LLVM=1 CC=gclang HOSTCC=gclang -j $(nproc)
 ```bash
 get-bc vmlinux.o
 ```
+
+### 4 Run LLVM pass
+```bash
+cd example_pass
+cmake -S src -B build
+cd build
+cmake --build .
+opt \
+  -load-pass-plugin=./hello_llvm_pass/hello_llvm.so \
+  -passes=hello-llvm \
+  /home/src/linux/vmlinux.o.bc \
+  -disable-output
+```
+

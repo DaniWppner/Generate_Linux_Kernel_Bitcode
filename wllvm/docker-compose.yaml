@@ -8,6 +8,7 @@ services:
       dockerfile: ./compile_linux_v6.10.Dockerfile
     volumes:
       - /path/to/linux:/home/src/linux
+      - ./example_pass:/home/src/example_pass
     command: /bin/bash
     tty: true
     stdin_open: true
